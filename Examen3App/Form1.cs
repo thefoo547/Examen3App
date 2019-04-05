@@ -16,5 +16,10 @@ namespace Examen3App
         {
             InitializeComponent();
         }
+
+        private void comisionesDeEmpleadosToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }
