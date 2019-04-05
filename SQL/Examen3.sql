@@ -12,14 +12,29 @@ GO
         Empresa Y      1997     9
         Empresa Y      1996     10     */
 
-CREATE PROCEDURE sp_Company_Orders_byYear
+ALTER PROCEDURE sp_Company_Orders_byYear
 AS
 	SELECT c.CompanyName as [Nombre Compañía],
 	YEAR(o.OrderDate) as Año,
-	COUNT(o.OrderID) FROM Customers c 
+	COUNT(o.OrderID) as [Cantidad de Órdenes] FROM Customers c 
 	INNER JOIN Orders o ON o.CustomerID=c.CustomerID
 	GROUP BY c.CompanyName, YEAR(o.OrderDate)
 	ORDER BY Año;
+
+/*    Realizar un procedimiento almacenado que reciba como parámetro el año.
+      Calcular la cantidad de órdenes y recaudaciones hechas para todos los empleados para
+      un determinado año. Aplicar una comisión del 25 % en caso que la cantidad de órdenes
+      supere el promedio de ese año. Promedio=(Cantidad de órdenes / Número de Empleados)
+      de lo contrario solo aplicar el 10%
+        Ejemplo: Suponiendo que la media de órdenes para ese año fue de 11, 
+                 se aplicaría el 25% de comisión de la recaudación.
+
+       IdEmpleado   -   Primer Nombre  -    Cantidad de órdenes  -  Recaudación - Comisión
+            4             Alfred                   18                 10254        2563.5
+         
+
+
+   */
 
 CREATE PROCEDURE sp_comisiones
 @yr int
@@ -50,3 +65,40 @@ AS
 
 	select * from #tabla_comision;
 	drop table #tabla_comision;
+
+--creacion de login para la conexión con la aplicación
+create login NwindAdmin with password='NwindAdmin.1234';
+create user NwindAdmin for LOGIN NwindAdmin;
+EXEC sp_addrolemember 'db_owner', 'NwindAdmin';
+
+--inicio de sesion para la aplicacion
+CREATE TABLE sysuser(
+	usr_id INTEGER PRIMARY KEY IDENTITY(0,1),
+	usrname VARCHAR(25),
+	pswd VARCHAR(100),
+	rol VARCHAR(30)
+);
+
+CREATE PROCEDURE log_in
+@usrname Varchar(25), @pswd Varchar(100)
+As
+	if exists (select * from sysuser where usrname=@usrname and decryptbypassphrase(@pswd,pswd) = @pswd)
+	Begin
+		Select 'GRANTED'
+	end
+	Else
+	Begin
+		Select 'DENIED'
+	End
+
+CREATE PROCEDURE sp_in_sysuser
+@usrname VARCHAR(25), @pswd VARCHAR(100), @rol VARCHAR(30)
+AS
+	INSERT INTO sysuser VALUES(@usrname, ENCRYPTBYPASSPHRASE(@pswd, @pswd), @rol);
+
+
+EXEC sp_in_sysuser 'Admin', 'Admin', 'SysAdmin';
+EXEC sp_in_sysuser 'User1', 'Abc.123', 'FullUser';
+
+exec log_in 'Admin', 'Admin';
+
